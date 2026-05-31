@@ -49,11 +49,24 @@ export default function Home() {
     saveTasks(tasks.filter((task) => task.id !== id));
   };
 
-  const filteredTasks = tasks.filter((task) => {
-    if (filter === "done") return task.done;
-    if (filter === "pending") return !task.done;
-    return true;
-  });
+  const tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 1);
+
+const tomorrowStr = tomorrow.toISOString().split("T")[0];
+
+const filteredTasks = tasks.filter((task) => {
+  if (filter === "done") return task.done;
+
+  if (filter === "doing") {
+    return !task.done;
+  }
+
+  if (filter === "tomorrow") {
+    return task.due === tomorrowStr;
+  }
+
+  return true;
+});
 
   const getSubjectColor = (subject: string) => {
     switch (subject) {
@@ -149,7 +162,15 @@ export default function Home() {
             เพิ่มงานใหม่
           </h3>
 
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid md:grid-cols-4 gap-4">
+            <div className="flex items-end">
+  <button
+    onClick={addTask}
+    className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl p-4 font-semibold"
+  >
+    + เพิ่มงาน
+  </button>
+</div>
 
             <input
               value={title}
@@ -201,8 +222,9 @@ export default function Home() {
               className="bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2"
             >
               <option value="all">ทั้งหมด</option>
-              <option value="pending">รอดำเนินการ</option>
-              <option value="done">เสร็จแล้ว</option>
+<option value="doing">กำลังทำ</option>
+<option value="done">เสร็จแล้ว</option>
+<option value="tomorrow">ส่งพรุ่งนี้</option>
             </select>
           </div>
 
@@ -250,6 +272,11 @@ export default function Home() {
                     task.due
                   )}`}
                 >
+                  {task.due === tomorrowStr && (
+  <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
+    ⚠️ ส่งพรุ่งนี้
+  </span>
+)}
                   📅{" "}
                   {task.due
                     ? new Date(task.due).toLocaleDateString("th-TH")
