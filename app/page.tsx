@@ -4,16 +4,14 @@ import { useState, useEffect } from "react";
 
 export default function Home() {
   const [tasks, setTasks] = useState<any[]>([]);
-  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [due, setDue] = useState("");
   const [filter, setFilter] = useState("all");
 
   useEffect(() => {
     const saved = localStorage.getItem("hw_tasks");
-    if (saved) {
-      setTasks(JSON.parse(saved));
-    }
+    if (saved) setTasks(JSON.parse(saved));
   }, []);
 
   const saveTasks = (newTasks: any[]) => {
@@ -22,19 +20,19 @@ export default function Home() {
   };
 
   const addTask = () => {
-    if (!name.trim()) return;
+    if (!title.trim()) return;
 
-    const newTask = {
+    const task = {
       id: Date.now(),
-      name,
+      title,
       subject,
       due,
       done: false,
     };
 
-    saveTasks([newTask, ...tasks]);
+    saveTasks([task, ...tasks]);
 
-    setName("");
+    setTitle("");
     setSubject("");
     setDue("");
   };
@@ -42,9 +40,7 @@ export default function Home() {
   const toggleDone = (id: number) => {
     saveTasks(
       tasks.map((task) =>
-        task.id === id
-          ? { ...task, done: !task.done }
-          : task
+        task.id === id ? { ...task, done: !task.done } : task
       )
     );
   };
@@ -53,177 +49,223 @@ export default function Home() {
     saveTasks(tasks.filter((task) => task.id !== id));
   };
 
-  const today = new Date().toISOString().split("T")[0];
-
   const filteredTasks = tasks.filter((task) => {
-    if (filter === "pending") return !task.done;
     if (filter === "done") return task.done;
-    if (filter === "today") return task.due === today;
+    if (filter === "pending") return !task.done;
     return true;
   });
 
+  const getSubjectColor = (subject: string) => {
+    switch (subject) {
+      case "คณิตศาสตร์":
+        return "bg-blue-500/20 text-blue-400";
+      case "วิทยาศาสตร์":
+        return "bg-green-500/20 text-green-400";
+      case "ภาษาไทย":
+        return "bg-pink-500/20 text-pink-400";
+      case "ภาษาอังกฤษ":
+        return "bg-purple-500/20 text-purple-400";
+      case "สังคมศึกษา":
+        return "bg-orange-500/20 text-orange-400";
+      case "คอมพิวเตอร์":
+        return "bg-cyan-500/20 text-cyan-400";
+      default:
+        return "bg-zinc-700 text-white";
+    }
+  };
+
+  const getDateColor = (due: string) => {
+    if (!due) return "bg-zinc-700 text-white";
+
+    const diff = Math.ceil(
+      (new Date(due).getTime() - new Date().getTime()) /
+        (1000 * 60 * 60 * 24)
+    );
+
+    if (diff <= 1) return "bg-red-500/20 text-red-400";
+    if (diff <= 3) return "bg-orange-500/20 text-orange-400";
+    if (diff <= 7) return "bg-green-500/20 text-green-400";
+
+    return "bg-blue-500/20 text-blue-400";
+  };
+
   return (
-    <main className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-6xl mx-auto">
-
-        <div className="mb-10">
-          <h1 className="text-5xl font-bold">
-            งานของฉัน
+    <main className="min-h-screen bg-black text-white">
+      <div className="border-b border-zinc-800">
+        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
+          <h1 className="text-3xl font-bold">
+            📘 Homework App
           </h1>
-          <p className="text-gray-400 mt-2">
-            จัดการการบ้านและงานที่ต้องส่ง
-          </p>
-        </div>
-
-        <div className="bg-white text-black rounded-3xl p-6 mb-8 shadow-xl">
-          <h2 className="text-xl font-bold mb-4">
-            เพิ่มงานใหม่
-          </h2>
-
-          <input
-            type="text"
-            placeholder="ชื่องาน"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full border rounded-xl p-3 mb-3"
-          />
-
-          <div className="grid md:grid-cols-2 gap-3 mb-3">
-            <input
-              type="text"
-              placeholder="วิชา"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              className="border rounded-xl p-3"
-            />
-
-            <input
-              type="date"
-              value={due}
-              onChange={(e) => setDue(e.target.value)}
-              className="border rounded-xl p-3"
-            />
-          </div>
 
           <button
             onClick={addTask}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl"
+            className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl font-semibold"
           >
-            เพิ่มงาน
+            + เพิ่มงาน
           </button>
         </div>
+      </div>
 
-        <div className="grid md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white text-black rounded-3xl p-6">
+      <div className="max-w-7xl mx-auto p-6">
+
+        <h2 className="text-6xl font-bold mb-2">
+          งานของฉัน
+        </h2>
+
+        <p className="text-zinc-400 mb-10">
+          จัดการงานและติดตามการบ้านของคุณ
+        </p>
+
+        <div className="grid md:grid-cols-4 gap-5 mb-8">
+          <div className="bg-white text-black rounded-3xl p-6 shadow-lg">
             <p className="text-gray-500">ทั้งหมด</p>
-            <h3 className="text-4xl font-bold">
-              {tasks.length}
-            </h3>
+            <h3 className="text-5xl font-bold">{tasks.length}</h3>
           </div>
 
-          <div className="bg-white text-black rounded-3xl p-6">
-            <p className="text-gray-500">ยังไม่เสร็จ</p>
-            <h3 className="text-4xl font-bold">
+          <div className="bg-white text-black rounded-3xl p-6 shadow-lg">
+            <p className="text-gray-500">รอดำเนินการ</p>
+            <h3 className="text-5xl font-bold">
               {tasks.filter((t) => !t.done).length}
             </h3>
           </div>
 
-          <div className="bg-white text-black rounded-3xl p-6">
+          <div className="bg-white text-black rounded-3xl p-6 shadow-lg">
             <p className="text-gray-500">เสร็จแล้ว</p>
-            <h3 className="text-4xl font-bold">
+            <h3 className="text-5xl font-bold">
               {tasks.filter((t) => t.done).length}
             </h3>
           </div>
 
-          <div className="bg-white text-black rounded-3xl p-6">
-            <p className="text-gray-500">ส่งวันนี้</p>
-            <h3 className="text-4xl font-bold">
-              {tasks.filter((t) => t.due === today).length}
+          <div className="bg-white text-black rounded-3xl p-6 shadow-lg">
+            <p className="text-gray-500">ใกล้ครบกำหนด</p>
+            <h3 className="text-5xl font-bold">
+              {tasks.filter((t) => !t.done).length}
             </h3>
           </div>
         </div>
 
-        <div className="flex gap-3 flex-wrap mb-6">
-          <button
-            onClick={() => setFilter("all")}
-            className="bg-blue-600 text-white px-4 py-2 rounded-xl"
-          >
-            ทั้งหมด
-          </button>
+        <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 mb-8">
+          <h3 className="text-xl font-semibold mb-4">
+            เพิ่มงานใหม่
+          </h3>
 
-          <button
-            onClick={() => setFilter("pending")}
-            className="bg-white text-black px-4 py-2 rounded-xl"
-          >
-            ยังไม่เสร็จ
-          </button>
+          <div className="grid md:grid-cols-3 gap-4">
 
-          <button
-            onClick={() => setFilter("done")}
-            className="bg-white text-black px-4 py-2 rounded-xl"
-          >
-            เสร็จแล้ว
-          </button>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="ชื่องาน"
+              className="bg-zinc-900 border border-zinc-700 rounded-xl p-4"
+            />
 
-          <button
-            onClick={() => setFilter("today")}
-            className="bg-white text-black px-4 py-2 rounded-xl"
-          >
-            ส่งวันนี้
-          </button>
+            <select
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              className="bg-zinc-900 border border-zinc-700 rounded-xl p-4 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none"
+            >
+              <option value="">เลือกวิชา</option>
+              <option>คณิตศาสตร์</option>
+              <option>วิทยาศาสตร์</option>
+              <option>ภาษาไทย</option>
+              <option>ภาษาอังกฤษ</option>
+              <option>สังคมศึกษา</option>
+              <option>คอมพิวเตอร์</option>
+              <option>ศิลปะ</option>
+            </select>
+
+            <div>
+              <label className="block mb-2 text-sm text-zinc-400">
+                วันที่กำหนดส่ง
+              </label>
+
+              <input
+                type="date"
+                value={due}
+                onChange={(e) => setDue(e.target.value)}
+                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-4"
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-6">
-          <h2 className="text-2xl font-bold text-black mb-4">
-            รายการงาน
-          </h2>
+        <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden">
 
-          {filteredTasks.length === 0 ? (
-            <p className="text-gray-400">
+          <div className="flex justify-between items-center p-5 border-b border-zinc-800">
+            <h3 className="text-xl font-bold">
+              รายการงาน
+            </h3>
+
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2"
+            >
+              <option value="all">ทั้งหมด</option>
+              <option value="pending">รอดำเนินการ</option>
+              <option value="done">เสร็จแล้ว</option>
+            </select>
+          </div>
+
+          {filteredTasks.length === 0 && (
+            <div className="text-center p-10 text-zinc-500">
               ยังไม่มีงาน
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {filteredTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="border rounded-2xl p-4 flex items-center justify-between"
-                >
-                  <div>
-                    <h3 className="text-black font-semibold">
-                      {task.name}
-                    </h3>
-
-                    <p className="text-gray-500 text-sm">
-                      {task.subject}
-                    </p>
-
-                    <p className="text-gray-400 text-xs">
-                      {task.due}
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => toggleDone(task.id)}
-                      className="bg-blue-600 text-white px-3 py-2 rounded-lg"
-                    >
-                      ✓
-                    </button>
-
-                    <button
-                      onClick={() => deleteTask(task.id)}
-                      className="bg-red-500 text-white px-3 py-2 rounded-lg"
-                    >
-                      ลบ
-                    </button>
-                  </div>
-                </div>
-              ))}
             </div>
           )}
-        </div>
 
+          {filteredTasks.map((task) => (
+            <div
+              key={task.id}
+              className="flex justify-between items-center p-5 border-b border-zinc-800"
+            >
+              <div className="flex gap-4">
+
+                <button
+                  onClick={() => toggleDone(task.id)}
+                  className={`w-7 h-7 rounded-full border ${
+                    task.done
+                      ? "bg-green-500 border-green-500"
+                      : "border-zinc-500"
+                  }`}
+                />
+
+                <div>
+                  <h3 className="font-semibold text-lg">
+                    {task.title}
+                  </h3>
+
+                  <span
+                    className={`inline-block mt-2 px-3 py-1 rounded-full text-xs ${getSubjectColor(
+                      task.subject
+                    )}`}
+                  >
+                    📚 {task.subject}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+
+                <span
+                  className={`px-4 py-2 rounded-full text-sm ${getDateColor(
+                    task.due
+                  )}`}
+                >
+                  📅{" "}
+                  {task.due
+                    ? new Date(task.due).toLocaleDateString("th-TH")
+                    : "-"}
+                </span>
+
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  className="text-red-400"
+                >
+                  ลบ
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </main>
   );
