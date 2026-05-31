@@ -107,15 +107,8 @@ const filteredTasks = tasks.filter((task) => {
       <div className="border-b border-zinc-800">
         <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
           <h1 className="text-3xl font-bold">
-            🔥 TEST NEW UI
+            การบ้าน 5/4
           </h1>
-
-          <button
-            onClick={addTask}
-            className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-xl font-semibold"
-          >
-            + เพิ่มงาน
-          </button>
         </div>
       </div>
 
@@ -163,13 +156,43 @@ const filteredTasks = tasks.filter((task) => {
           </h3>
 
           <div className="grid md:grid-cols-4 gap-4">
-            <div className="flex items-end">
+
+  <input
+    value={title}
+    onChange={(e) => setTitle(e.target.value)}
+    placeholder="ชื่องาน"
+    className="bg-zinc-900 border border-zinc-700 rounded-xl p-4"
+  />
+
+  <select
+    value={subject}
+    onChange={(e) => setSubject(e.target.value)}
+    className="bg-zinc-900 border border-zinc-700 rounded-xl p-4"
+  >
+    <option value="">เลือกวิชา</option>
+    <option>คณิตศาสตร์</option>
+    <option>วิทยาศาสตร์</option>
+    <option>ภาษาไทย</option>
+    <option>ภาษาอังกฤษ</option>
+    <option>สังคมศึกษา</option>
+    <option>คอมพิวเตอร์</option>
+    <option>ศิลปะ</option>
+  </select>
+
+  <input
+    type="date"
+    value={due}
+    onChange={(e) => setDue(e.target.value)}
+    className="bg-zinc-900 border border-zinc-700 rounded-xl p-4"
+  />
+
   <button
     onClick={addTask}
-    className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl p-4 font-semibold"
+    className="bg-blue-600 hover:bg-blue-700 rounded-xl p-4 font-semibold"
   >
     + เพิ่มงาน
   </button>
+
 </div>
 
             <input
@@ -267,22 +290,23 @@ const filteredTasks = tasks.filter((task) => {
 
               <div className="flex items-center gap-3">
 
-                <span
-                  className={`px-4 py-2 rounded-full text-sm ${getDateColor(
-                    task.due
-                  )}`}
-                >
-                  {task.due === tomorrowStr && (
-  <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
-    ⚠️ ส่งพรุ่งนี้
-  </span>
-)}
-                  📅{" "}
-                  {task.due
-                    ? new Date(task.due).toLocaleDateString("th-TH")
-                    : "-"}
-                </span>
+                <div className="flex items-center gap-2">
 
+  {task.due === tomorrowStr && (
+    <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
+      ⚠️ ส่งพรุ่งนี้
+    </span>
+  )}
+
+  <span
+    className={`px-4 py-2 rounded-full text-sm ${getDateColor(task.due)}`}
+  >
+    📅 {task.due
+      ? new Date(task.due).toLocaleDateString("th-TH")
+      : "-"}
+  </span>
+
+</div>
                 <button
                   onClick={() => deleteTask(task.id)}
                   className="text-red-400"
