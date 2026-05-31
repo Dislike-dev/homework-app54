@@ -2,8 +2,16 @@
 
 import { useState, useEffect } from "react";
 
+type Task = {
+  id: number;
+  title: string;
+  subject: string;
+  due: string;
+  done: boolean;
+};
+
 export default function Home() {
-  const [tasks, setTasks] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
   const [due, setDue] = useState("");
@@ -11,10 +19,12 @@ export default function Home() {
 
   useEffect(() => {
     const saved = localStorage.getItem("hw_tasks");
-    if (saved) setTasks(JSON.parse(saved));
+    if (saved) {
+      setTasks(JSON.parse(saved));
+    }
   }, []);
 
-  const saveTasks = (newTasks: any[]) => {
+  const saveTasks = (newTasks: Task[]) => {
     setTasks(newTasks);
     localStorage.setItem("hw_tasks", JSON.stringify(newTasks));
   };
@@ -22,7 +32,7 @@ export default function Home() {
   const addTask = () => {
     if (!title.trim()) return;
 
-    const task = {
+    const newTask: Task = {
       id: Date.now(),
       title,
       subject,
@@ -30,8 +40,7 @@ export default function Home() {
       done: false,
     };
 
-    saveTasks([task, ...tasks]);
-
+    saveTasks([newTask, ...tasks]);
     setTitle("");
     setSubject("");
     setDue("");
@@ -50,151 +59,56 @@ export default function Home() {
   };
 
   const tomorrow = new Date();
-tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
-const tomorrowStr = tomorrow.toISOString().split("T")[0];
-
-const filteredTasks = tasks.filter((task) => {
-  if (filter === "done") return task.done;
-
-  if (filter === "doing") {
-    return !task.done;
-  }
-
-  if (filter === "tomorrow") {
-    return task.due === tomorrowStr;
-  }
-
-  return true;
-});
-
-  const getSubjectColor = (subject: string) => {
-    switch (subject) {
-      case "คณิตศาสตร์":
-        return "bg-blue-500/20 text-blue-400";
-      case "วิทยาศาสตร์":
-        return "bg-green-500/20 text-green-400";
-      case "ภาษาไทย":
-        return "bg-pink-500/20 text-pink-400";
-      case "ภาษาอังกฤษ":
-        return "bg-purple-500/20 text-purple-400";
-      case "สังคมศึกษา":
-        return "bg-orange-500/20 text-orange-400";
-      case "คอมพิวเตอร์":
-        return "bg-cyan-500/20 text-cyan-400";
-      default:
-        return "bg-zinc-700 text-white";
-    }
-  };
-
-  const getDateColor = (due: string) => {
-    if (!due) return "bg-zinc-700 text-white";
-
-    const diff = Math.ceil(
-      (new Date(due).getTime() - new Date().getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
-
-    if (diff <= 1) return "bg-red-500/20 text-red-400";
-    if (diff <= 3) return "bg-orange-500/20 text-orange-400";
-    if (diff <= 7) return "bg-green-500/20 text-green-400";
-
-    return "bg-blue-500/20 text-blue-400";
-  };
+  const filteredTasks = tasks.filter((task) => {
+    if (filter === "doing") return !task.done;
+    if (filter === "done") return task.done;
+    if (filter === "tomorrow") return task.due === tomorrowStr;
+    return true;
+  });
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="border-b border-zinc-800">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
-          <h1 className="text-3xl font-bold">
-            การบ้าน 5/4
-          </h1>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto p-6">
-
-        <h2 className="text-6xl font-bold mb-2">
-          งานของฉัน
-        </h2>
-
-        <p className="text-zinc-400 mb-10">
+    <main className="min-h-screen bg-black text-white p-6">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-4xl font-bold mb-2">การบ้าน 5/4</h1>
+        <p className="text-zinc-400 mb-8">
           จัดการงานและติดตามการบ้านของคุณ
         </p>
 
-        <div className="grid md:grid-cols-4 gap-5 mb-8">
-          <div className="bg-white text-black rounded-3xl p-6 shadow-lg">
-            <p className="text-gray-500">ทั้งหมด</p>
-            <h3 className="text-5xl font-bold">{tasks.length}</h3>
+        <div className="grid md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white text-black rounded-3xl p-6">
+            <p>ทั้งหมด</p>
+            <h2 className="text-4xl font-bold">{tasks.length}</h2>
           </div>
 
-          <div className="bg-white text-black rounded-3xl p-6 shadow-lg">
-            <p className="text-gray-500">รอดำเนินการ</p>
-            <h3 className="text-5xl font-bold">
+          <div className="bg-white text-black rounded-3xl p-6">
+            <p>กำลังทำ</p>
+            <h2 className="text-4xl font-bold">
               {tasks.filter((t) => !t.done).length}
-            </h3>
+            </h2>
           </div>
 
-          <div className="bg-white text-black rounded-3xl p-6 shadow-lg">
-            <p className="text-gray-500">เสร็จแล้ว</p>
-            <h3 className="text-5xl font-bold">
+          <div className="bg-white text-black rounded-3xl p-6">
+            <p>เสร็จแล้ว</p>
+            <h2 className="text-4xl font-bold">
               {tasks.filter((t) => t.done).length}
-            </h3>
+            </h2>
           </div>
 
-          <div className="bg-white text-black rounded-3xl p-6 shadow-lg">
-            <p className="text-gray-500">ใกล้ครบกำหนด</p>
-            <h3 className="text-5xl font-bold">
-              {tasks.filter((t) => !t.done).length}
-            </h3>
+          <div className="bg-white text-black rounded-3xl p-6">
+            <p>ส่งพรุ่งนี้</p>
+            <h2 className="text-4xl font-bold">
+              {tasks.filter((t) => t.due === tomorrowStr).length}
+            </h2>
           </div>
         </div>
 
         <div className="bg-zinc-950 border border-zinc-800 rounded-3xl p-6 mb-8">
-          <h3 className="text-xl font-semibold mb-4">
-            เพิ่มงานใหม่
-          </h3>
+          <h3 className="text-xl font-semibold mb-4">เพิ่มงานใหม่</h3>
 
           <div className="grid md:grid-cols-4 gap-4">
-
-  <input
-    value={title}
-    onChange={(e) => setTitle(e.target.value)}
-    placeholder="ชื่องาน"
-    className="bg-zinc-900 border border-zinc-700 rounded-xl p-4"
-  />
-
-  <select
-    value={subject}
-    onChange={(e) => setSubject(e.target.value)}
-    className="bg-zinc-900 border border-zinc-700 rounded-xl p-4"
-  >
-    <option value="">เลือกวิชา</option>
-    <option>คณิตศาสตร์</option>
-    <option>วิทยาศาสตร์</option>
-    <option>ภาษาไทย</option>
-    <option>ภาษาอังกฤษ</option>
-    <option>สังคมศึกษา</option>
-    <option>คอมพิวเตอร์</option>
-    <option>ศิลปะ</option>
-  </select>
-
-  <input
-    type="date"
-    value={due}
-    onChange={(e) => setDue(e.target.value)}
-    className="bg-zinc-900 border border-zinc-700 rounded-xl p-4"
-  />
-
-  <button
-    onClick={addTask}
-    className="bg-blue-600 hover:bg-blue-700 rounded-xl p-4 font-semibold"
-  >
-    + เพิ่มงาน
-  </button>
-
-</div>
-
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -205,7 +119,7 @@ const filteredTasks = tasks.filter((task) => {
             <select
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              className="bg-zinc-900 border border-zinc-700 rounded-xl p-4 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="bg-zinc-900 border border-zinc-700 rounded-xl p-4"
             >
               <option value="">เลือกวิชา</option>
               <option>คณิตศาสตร์</option>
@@ -214,99 +128,66 @@ const filteredTasks = tasks.filter((task) => {
               <option>ภาษาอังกฤษ</option>
               <option>สังคมศึกษา</option>
               <option>คอมพิวเตอร์</option>
-              <option>ศิลปะ</option>
             </select>
 
-            <div>
-              <label className="block mb-2 text-sm text-zinc-400">
-                วันที่กำหนดส่ง
-              </label>
+            <input
+              type="date"
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+              className="bg-zinc-900 border border-zinc-700 rounded-xl p-4"
+            />
 
-              <input
-                type="date"
-                value={due}
-                onChange={(e) => setDue(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-xl p-4"
-              />
-            </div>
+            <button
+              onClick={addTask}
+              className="bg-blue-600 hover:bg-blue-700 rounded-xl p-4 font-semibold"
+            >
+              + เพิ่มงาน
+            </button>
           </div>
         </div>
 
-        <div className="bg-zinc-950 border border-zinc-800 rounded-3xl overflow-hidden">
+       <div className="flex gap-3 mb-6 flex-wrap">
+  {[
+    ["all", "ทั้งหมด"],
+    ["doing", "กำลังทำ"],
+    ["done", "เสร็จแล้ว"],
+    ["tomorrow", "ส่งพรุ่งนี้"],
+  ].map(([value, label]) => (
+    <button
+      key={value}
+      onClick={() => setFilter(value)}
+      className={`px-5 py-2 rounded-xl font-medium transition-all ${
+        filter === value
+          ? "bg-blue-600 text-white"
+          : "bg-zinc-900 text-zinc-400 border border-zinc-700"
+      }`}
+    >
+      {label}
+    </button>
+  ))}
+</div>
 
-          <div className="flex justify-between items-center p-5 border-b border-zinc-800">
-            <h3 className="text-xl font-bold">
-              รายการงาน
-            </h3>
-
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2"
-            >
-              <option value="all">ทั้งหมด</option>
-<option value="doing">กำลังทำ</option>
-<option value="done">เสร็จแล้ว</option>
-<option value="tomorrow">ส่งพรุ่งนี้</option>
-            </select>
-          </div>
-
-          {filteredTasks.length === 0 && (
-            <div className="text-center p-10 text-zinc-500">
-              ยังไม่มีงาน
-            </div>
-          )}
-
+        <div className="bg-zinc-950 border border-zinc-800 rounded-3xl">
           {filteredTasks.map((task) => (
             <div
               key={task.id}
               className="flex justify-between items-center p-5 border-b border-zinc-800"
             >
-              <div className="flex gap-4">
-
-                <button
-                  onClick={() => toggleDone(task.id)}
-                  className={`w-7 h-7 rounded-full border ${
-                    task.done
-                      ? "bg-green-500 border-green-500"
-                      : "border-zinc-500"
-                  }`}
-                />
-
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    {task.title}
-                  </h3>
-
-                  <span
-                    className={`inline-block mt-2 px-3 py-1 rounded-full text-xs ${getSubjectColor(
-                      task.subject
-                    )}`}
-                  >
-                    📚 {task.subject}
-                  </span>
-                </div>
+              <div>
+                <h3 className="font-semibold">{task.title}</h3>
+                <p className="text-zinc-400 text-sm">{task.subject}</p>
               </div>
 
               <div className="flex items-center gap-3">
+                <span>{task.due || "-"}</span>
 
-                <div className="flex items-center gap-2">
+                <button
+                  onClick={() => toggleDone(task.id)}
+                  className="text-green-400"
+                >
+                  ✓
+                </button>
 
-  {task.due === tomorrowStr && (
-    <span className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs">
-      ⚠️ ส่งพรุ่งนี้
-    </span>
-  )}
-
-  <span
-    className={`px-4 py-2 rounded-full text-sm ${getDateColor(task.due)}`}
-  >
-    📅 {task.due
-      ? new Date(task.due).toLocaleDateString("th-TH")
-      : "-"}
-  </span>
-
-</div>
                 <button
                   onClick={() => deleteTask(task.id)}
                   className="text-red-400"
