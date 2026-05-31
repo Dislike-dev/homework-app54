@@ -94,7 +94,7 @@ export default function Home() {
       <div className="border-b border-zinc-800">
         <div className="max-w-7xl mx-auto px-6 py-5 flex justify-between items-center">
           <h1 className="text-3xl font-bold">
-            📘 Homework App
+            🔥 TEST NEW UI
           </h1>
 
           <button
