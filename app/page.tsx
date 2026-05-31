@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 
 export default function Home() {
-  const [tasks, setTasks] = useState([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [due, setDue] = useState("");
@@ -14,7 +14,7 @@ export default function Home() {
     if (saved) setTasks(JSON.parse(saved));
   }, []);
 
-  const save = (t) => {
+  const save = (t: any[]) => {
     setTasks(t);
     localStorage.setItem("hw_tasks", JSON.stringify(t));
   };
@@ -25,11 +25,11 @@ export default function Home() {
     setName(""); setSubject(""); setDue(""); setPriority("mid");
   };
 
-  const toggleDone = (id) => save(tasks.map((t) => t.id === id ? { ...t, done: !t.done } : t));
-  const deleteTask = (id) => save(tasks.filter((t) => t.id !== id));
+  const toggleDone = (id: number) => save(tasks.map((t: any) => t.id === id ? { ...t, done: !t.done } : t));
+  const deleteTask = (id: number) => save(tasks.filter((t: any) => t.id !== id));
 
   const today = new Date().toISOString().split("T")[0];
-  const filtered = tasks.filter((t) => {
+  const filtered = tasks.filter((t: any) => {
     if (filter === "pending") return !t.done;
     if (filter === "done") return t.done;
     if (filter === "today") return t.due === today;
@@ -58,7 +58,7 @@ export default function Home() {
 
       <div className="flex gap-2 mb-4 flex-wrap">
         {[["all","ทั้งหมด"],["pending","ยังไม่เสร็จ"],["done","เสร็จแล้ว"],["today","ส่งวันนี้"]].map(([f,label]) => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1 rounded-full text-xs border ${filter === f ? "bg-teal-600 text-white border-teal-600" : "border-gray-200 text-gray-500"}`}>
+          <button key={f} onClick={() => setFilter(f as string)} className={`px-3 py-1 rounded-full text-xs border ${filter === f ? "bg-teal-600 text-white border-teal-600" : "border-gray-200 text-gray-500"}`}>
             {label}
           </button>
         ))}
@@ -66,7 +66,7 @@ export default function Home() {
 
       <div className="flex flex-col gap-2">
         {filtered.length === 0 && <p className="text-center text-gray-400 py-8">ไม่มีงานในหมวดนี้</p>}
-        {filtered.map((t) => (
+        {filtered.map((t: any) => (
           <div key={t.id} className={`bg-white rounded-2xl border border-gray-200 p-3 flex items-center gap-3 shadow-sm ${t.done ? "opacity-50" : ""}`}>
             <button onClick={() => toggleDone(t.id)} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${t.done ? "bg-teal-500 border-teal-500 text-white" : "border-gray-300"}`}>
               {t.done && "✓"}
