@@ -3,10 +3,8 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { useUser, SignInButton, SignOutButton } from "@clerk/nextjs";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, query, where, onSnapshot, doc, updateDoc, getDoc } from "firebase/firestore";
 
-type Task = { id: string; title: string; subject: string; due: string; done: boolean; uid: string; };
+type Task = { id: string; title: string; subject: string; due: string; done: boolean; };
 
 export default function Home() {
   const { user, isLoaded } = useUser();
@@ -15,51 +13,26 @@ export default function Home() {
   const [subject, setSubject] = useState("");
   const [due, setDue] = useState("");
   const [filter, setFilter] = useState("all");
-  const [viewFriends, setViewFriends] = useState(false);
-  const [friendEmail, setFriendEmail] = useState("");
 
   useEffect(() => {
     if (!user) return;
-    if (!viewFriends) {
-      const q = query(collection(db, "tasks"), where("uid", "==", user.id));
-      const unsub = onSnapshot(q, (snapshot) => {
-        setTasks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Task)));
-      });
-      return unsub;
-    } else {
-      const load = async () => {
-        const userDoc = await getDoc(doc(db, "users", user.id));
-        const friends: string[] = userDoc.data()?.friends || [];
-        if (friends.length === 0) { setTasks([]); return; }
-        const q = query(collection(db, "tasks"), where("uid", "in", friends));
-        onSnapshot(q, (snapshot) => {
-          setTasks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Task)));
-        });
-      };
-      load();
-    }
-  }, [user, viewFriends]);
+    const saved = localStorage.getItem(`tasks_${user.id}`);
+    if (saved) setTasks(JSON.parse(saved));
+  }, [user]);
 
-  const addTask = async () => {
-    if (!title.trim() || !user) return;
-    await addDoc(collection(db, "tasks"), { title, subject, due, done: false, uid: user.id });
+  const save = (t: Task[]) => {
+    setTasks(t);
+    if (user) localStorage.setItem(`tasks_${user.id}`, JSON.stringify(t));
+  };
+
+  const addTask = () => {
+    if (!title.trim()) return;
+    save([{ id: Date.now().toString(), title, subject, due, done: false }, ...tasks]);
     setTitle(""); setSubject(""); setDue("");
   };
 
-  const toggleDone = async (task: Task) => {
-    await updateDoc(doc(db, "tasks", task.id), { done: !task.done });
-  };
-
-  const addFriend = async () => {
-    if (!friendEmail || !user) return;
-    const q = query(collection(db, "users"), where("email", "==", friendEmail));
-    const snap = await getDocs(q);
-    if (!snap.empty) {
-      const friendUid = snap.docs[0].data().uid;
-      await updateDoc(doc(db, "users", user.id), { friends: [friendUid] });
-      setFriendEmail("");
-    }
-  };
+  const toggleDone = (id: string) => save(tasks.map((t) => t.id === id ? { ...t, done: !t.done } : t));
+  const deleteTask = (id: string) => save(tasks.filter((t) => t.id !== id));
 
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -87,39 +60,27 @@ export default function Home() {
         ) : (
           <>
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold">{user.firstName}'s Homework</h1>
+              <h1 className="text-2xl font-bold">สวัสดี {user.firstName}!</h1>
               <SignOutButton>
                 <button className="bg-red-600 px-4 py-2 rounded-xl text-sm">Logout</button>
               </SignOutButton>
             </div>
-            <div className="flex gap-3 mb-4 flex-wrap">
-              <button onClick={() => setViewFriends(false)} className={`px-4 py-2 rounded-xl text-sm ${!viewFriends ? "bg-blue-600" : "bg-zinc-800"}`}>งานของฉัน</button>
-              <button onClick={() => setViewFriends(true)} className={`px-4 py-2 rounded-xl text-sm ${viewFriends ? "bg-blue-600" : "bg-zinc-800"}`}>งานเพื่อน</button>
-              {viewFriends && (
-                <>
-                  <input type="text" placeholder="email เพื่อน..." value={friendEmail} onChange={(e) => setFriendEmail(e.target.value)} className="bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white flex-1" />
-                  <button onClick={addFriend} className="bg-green-600 px-4 py-2 rounded-xl text-sm">+ เพิ่มเพื่อน</button>
-                </>
-              )}
-            </div>
-            {!viewFriends && (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-6">
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ชื่องาน..." className="bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-sm col-span-2" />
-                  <select value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-sm">
-                    <option value="">เลือกวิชา</option>
-                    <option>คณิตศาสตร์</option>
-                    <option>วิทยาศาสตร์</option>
-                    <option>ภาษาไทย</option>
-                    <option>ภาษาอังกฤษ</option>
-                    <option>สังคมศึกษา</option>
-                    <option>คอมพิวเตอร์</option>
-                  </select>
-                  <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-sm" />
-                </div>
-                <button onClick={addTask} className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl p-3 text-sm font-semibold">+ เพิ่มงาน</button>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-6">
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="ชื่องาน..." className="bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-sm col-span-2" />
+                <select value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-sm">
+                  <option value="">เลือกวิชา</option>
+                  <option>คณิตศาสตร์</option>
+                  <option>วิทยาศาสตร์</option>
+                  <option>ภาษาไทย</option>
+                  <option>ภาษาอังกฤษ</option>
+                  <option>สังคมศึกษา</option>
+                  <option>คอมพิวเตอร์</option>
+                </select>
+                <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className="bg-zinc-800 border border-zinc-700 rounded-xl p-3 text-sm" />
               </div>
-            )}
+              <button onClick={addTask} className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl p-3 text-sm font-semibold">+ เพิ่มงาน</button>
+            </div>
             <div className="flex gap-2 mb-4 flex-wrap">
               {[["all","ทั้งหมด"],["doing","กำลังทำ"],["done","เสร็จแล้ว"],["tomorrow","ส่งพรุ่งนี้"]].map(([v,l]) => (
                 <button key={v} onClick={() => setFilter(v)} className={`px-4 py-2 rounded-xl text-sm ${filter === v ? "bg-blue-600" : "bg-zinc-800"}`}>{l}</button>
@@ -133,11 +94,12 @@ export default function Home() {
                     <p className={`font-medium ${task.done ? "line-through" : ""}`}>{task.title}</p>
                     <p className="text-zinc-400 text-sm">{task.subject} {task.due && `· ${task.due}`}</p>
                   </div>
-                  {!viewFriends && (
-                    <button onClick={() => toggleDone(task)} className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${task.done ? "bg-green-500 border-green-500" : "border-zinc-600"}`}>
+                  <div className="flex gap-2">
+                    <button onClick={() => toggleDone(task.id)} className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${task.done ? "bg-green-500 border-green-500" : "border-zinc-600"}`}>
                       {task.done && "✓"}
                     </button>
-                  )}
+                    <button onClick={() => deleteTask(task.id)} className="text-zinc-500 hover:text-red-400 text-sm px-2">ลบ</button>
+                  </div>
                 </div>
               ))}
             </div>
