@@ -1,40 +1,13 @@
 "use client";
 export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import { db, auth } from "@/lib/firebase";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  query,
-  where,
-  onSnapshot,
-  doc,
-  updateDoc,
-  getDoc,
-} from "firebase/firestore";
-import {
-  GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
-  signOut,
-} from "firebase/auth";
+import { collection, addDoc, getDocs, query, where, onSnapshot, doc, updateDoc, getDoc } from "firebase/firestore";
+import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 
-type Task = {
-  id: string;
-  title: string;
-  subject: string;
-  due: string;
-  done: boolean;
-  uid: string;
-};
-
-type UserProfile = {
-  uid: string;
-  displayName: string;
-  email: string;
-  friends?: string[];
-};
+type Task = { id: string; title: string; subject: string; due: string; done: boolean; uid: string; };
+type UserProfile = { uid: string; displayName: string; email: string; friends?: string[]; };
 
 export default function Home() {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -47,29 +20,6 @@ export default function Home() {
   const [friendEmail, setFriendEmail] = useState("");
 
   useEffect(() => {
-    getRedirectResult(auth).then(async (result) => {
-      if (!result) return;
-      const u = result.user;
-      const userDocRef = doc(db, "users", u.uid);
-      const docSnap = await getDoc(userDocRef);
-      if (!docSnap.exists()) {
-        await addDoc(collection(db, "users"), {
-          uid: u.uid,
-          displayName: u.displayName,
-          email: u.email,
-          friends: [],
-        });
-      }
-      setUser({
-        uid: u.uid,
-        displayName: u.displayName || "User",
-        email: u.email || "",
-        friends: docSnap.exists() ? docSnap.data().friends : [],
-      });
-    });
-  }, []);
-
-  useEffect(() => {
     if (!user) return;
     if (!viewFriends) {
       const q = query(collection(db, "tasks"), where("uid", "==", user.uid));
@@ -78,7 +28,7 @@ export default function Home() {
       });
       return unsub;
     } else {
-      const loadFriendTasks = async () => {
+      const load = async () => {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         const friends: string[] = userDoc.data()?.friends || [];
         if (friends.length === 0) { setTasks([]); return; }
@@ -87,20 +37,25 @@ export default function Home() {
           setTasks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Task)));
         });
       };
-      loadFriendTasks();
+      load();
     }
   }, [user, viewFriends]);
 
   const login = async () => {
     const provider = new GoogleAuthProvider();
-    await signInWithRedirect(auth, provider);
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const u = result.user;
+      const userDocRef = doc(db, "users", u.uid);
+      const docSnap = await getDoc(userDocRef);
+      if (!docSnap.exists()) {
+        await addDoc(collection(db, "users"), { uid: u.uid, displayName: u.displayName, email: u.email, friends: [] });
+      }
+      setUser({ uid: u.uid, displayName: u.displayName || "User", email: u.email || "", friends: docSnap.exists() ? docSnap.data().friends : [] });
+    } catch (error) { console.error(error); }
   };
 
-  const logout = () => {
-    signOut(auth);
-    setUser(null);
-    setTasks([]);
-  };
+  const logout = () => { signOut(auth); setUser(null); setTasks([]); };
 
   const addTask = async () => {
     if (!title.trim() || !user) return;
@@ -118,9 +73,7 @@ export default function Home() {
     const snap = await getDocs(q);
     if (!snap.empty) {
       const friendUid = snap.docs[0].data().uid;
-      await updateDoc(doc(db, "users", user.uid), {
-        friends: [...(user.friends || []), friendUid],
-      });
+      await updateDoc(doc(db, "users", user.uid), { friends: [...(user.friends || []), friendUid] });
       setFriendEmail("");
       setUser({ ...user, friends: [...(user.friends || []), friendUid] });
     }
@@ -143,9 +96,7 @@ export default function Home() {
         {!user ? (
           <div className="flex flex-col items-center justify-center min-h-screen gap-4">
             <h1 className="text-3xl font-bold">การบ้านของฉัน</h1>
-            <button onClick={login} className="bg-blue-600 px-6 py-3 rounded-xl font-semibold">
-              Login with Google
-            </button>
+            <button onClick={login} className="bg-blue-600 px-6 py-3 rounded-xl font-semibold">Login with Google</button>
           </div>
         ) : (
           <>
@@ -153,7 +104,6 @@ export default function Home() {
               <h1 className="text-2xl font-bold">{user.displayName}'s Homework</h1>
               <button onClick={logout} className="bg-red-600 px-4 py-2 rounded-xl text-sm">Logout</button>
             </div>
-
             <div className="flex gap-3 mb-4 flex-wrap">
               <button onClick={() => setViewFriends(false)} className={`px-4 py-2 rounded-xl text-sm ${!viewFriends ? "bg-blue-600" : "bg-zinc-800"}`}>งานของฉัน</button>
               <button onClick={() => setViewFriends(true)} className={`px-4 py-2 rounded-xl text-sm ${viewFriends ? "bg-blue-600" : "bg-zinc-800"}`}>งานเพื่อน</button>
@@ -164,7 +114,6 @@ export default function Home() {
                 </>
               )}
             </div>
-
             {!viewFriends && (
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-6">
                 <div className="grid grid-cols-2 gap-3 mb-3">
@@ -183,13 +132,11 @@ export default function Home() {
                 <button onClick={addTask} className="w-full bg-blue-600 hover:bg-blue-700 rounded-xl p-3 text-sm font-semibold">+ เพิ่มงาน</button>
               </div>
             )}
-
             <div className="flex gap-2 mb-4 flex-wrap">
               {[["all","ทั้งหมด"],["doing","กำลังทำ"],["done","เสร็จแล้ว"],["tomorrow","ส่งพรุ่งนี้"]].map(([v,l]) => (
                 <button key={v} onClick={() => setFilter(v)} className={`px-4 py-2 rounded-xl text-sm ${filter === v ? "bg-blue-600" : "bg-zinc-800"}`}>{l}</button>
               ))}
             </div>
-
             <div className="flex flex-col gap-2">
               {filteredTasks.length === 0 && <p className="text-center text-zinc-500 py-8">ไม่มีงานในหมวดนี้</p>}
               {filteredTasks.map((task) => (
