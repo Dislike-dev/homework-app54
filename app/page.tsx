@@ -2,15 +2,14 @@
 export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
-import { db, auth } from "@/lib/firebase";
+import { useUser, SignInButton, SignOutButton } from "@clerk/nextjs";
+import { db } from "@/lib/firebase";
 import { collection, addDoc, getDocs, query, where, onSnapshot, doc, updateDoc, getDoc } from "firebase/firestore";
-import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 
 type Task = { id: string; title: string; subject: string; due: string; done: boolean; uid: string; };
-type UserProfile = { uid: string; displayName: string; email: string; friends?: string[]; };
 
 export default function Home() {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const { user, isLoaded } = useUser();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
   const [subject, setSubject] = useState("");
@@ -22,14 +21,14 @@ export default function Home() {
   useEffect(() => {
     if (!user) return;
     if (!viewFriends) {
-      const q = query(collection(db, "tasks"), where("uid", "==", user.uid));
+      const q = query(collection(db, "tasks"), where("uid", "==", user.id));
       const unsub = onSnapshot(q, (snapshot) => {
         setTasks(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Task)));
       });
       return unsub;
     } else {
       const load = async () => {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userDoc = await getDoc(doc(db, "users", user.id));
         const friends: string[] = userDoc.data()?.friends || [];
         if (friends.length === 0) { setTasks([]); return; }
         const q = query(collection(db, "tasks"), where("uid", "in", friends));
@@ -41,25 +40,9 @@ export default function Home() {
     }
   }, [user, viewFriends]);
 
-  const login = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const u = result.user;
-      const userDocRef = doc(db, "users", u.uid);
-      const docSnap = await getDoc(userDocRef);
-      if (!docSnap.exists()) {
-        await addDoc(collection(db, "users"), { uid: u.uid, displayName: u.displayName, email: u.email, friends: [] });
-      }
-      setUser({ uid: u.uid, displayName: u.displayName || "User", email: u.email || "", friends: docSnap.exists() ? docSnap.data().friends : [] });
-    } catch (error) { console.error(error); }
-  };
-
-  const logout = () => { signOut(auth); setUser(null); setTasks([]); };
-
   const addTask = async () => {
     if (!title.trim() || !user) return;
-    await addDoc(collection(db, "tasks"), { title, subject, due, done: false, uid: user.uid });
+    await addDoc(collection(db, "tasks"), { title, subject, due, done: false, uid: user.id });
     setTitle(""); setSubject(""); setDue("");
   };
 
@@ -73,9 +56,8 @@ export default function Home() {
     const snap = await getDocs(q);
     if (!snap.empty) {
       const friendUid = snap.docs[0].data().uid;
-      await updateDoc(doc(db, "users", user.uid), { friends: [...(user.friends || []), friendUid] });
+      await updateDoc(doc(db, "users", user.id), { friends: [friendUid] });
       setFriendEmail("");
-      setUser({ ...user, friends: [...(user.friends || []), friendUid] });
     }
   };
 
@@ -90,19 +72,25 @@ export default function Home() {
     return true;
   });
 
+  if (!isLoaded) return <div className="min-h-screen bg-black flex items-center justify-center text-white">กำลังโหลด...</div>;
+
   return (
     <main className="min-h-screen bg-black text-white p-6">
       <div className="max-w-2xl mx-auto">
         {!user ? (
           <div className="flex flex-col items-center justify-center min-h-screen gap-4">
             <h1 className="text-3xl font-bold">การบ้านของฉัน</h1>
-            <button onClick={login} className="bg-blue-600 px-6 py-3 rounded-xl font-semibold">Login with Google</button>
+            <SignInButton mode="modal">
+              <button className="bg-blue-600 px-6 py-3 rounded-xl font-semibold">Login with Google</button>
+            </SignInButton>
           </div>
         ) : (
           <>
             <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold">{user.displayName}'s Homework</h1>
-              <button onClick={logout} className="bg-red-600 px-4 py-2 rounded-xl text-sm">Logout</button>
+              <h1 className="text-2xl font-bold">{user.firstName}'s Homework</h1>
+              <SignOutButton>
+                <button className="bg-red-600 px-4 py-2 rounded-xl text-sm">Logout</button>
+              </SignOutButton>
             </div>
             <div className="flex gap-3 mb-4 flex-wrap">
               <button onClick={() => setViewFriends(false)} className={`px-4 py-2 rounded-xl text-sm ${!viewFriends ? "bg-blue-600" : "bg-zinc-800"}`}>งานของฉัน</button>
