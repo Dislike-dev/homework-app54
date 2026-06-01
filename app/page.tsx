@@ -13,7 +13,12 @@ import {
   updateDoc,
   getDoc,
 } from "firebase/firestore";
-import { GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import {
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+} from "firebase/auth";
 
 type Task = {
   id: string;
@@ -41,33 +46,28 @@ export default function Home() {
   const [viewFriends, setViewFriends] = useState(false);
   const [friendEmail, setFriendEmail] = useState("");
 
-  const login = async () => {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const u = result.user;
-    const userDocRef = doc(db, "users", u.uid);
-    const docSnap = await getDoc(userDocRef);
-    if (!docSnap.exists()) {
-      await addDoc(collection(db, "users"), {
+  useEffect(() => {
+    getRedirectResult(auth).then(async (result) => {
+      if (!result) return;
+      const u = result.user;
+      const userDocRef = doc(db, "users", u.uid);
+      const docSnap = await getDoc(userDocRef);
+      if (!docSnap.exists()) {
+        await addDoc(collection(db, "users"), {
+          uid: u.uid,
+          displayName: u.displayName,
+          email: u.email,
+          friends: [],
+        });
+      }
+      setUser({
         uid: u.uid,
-        displayName: u.displayName,
-        email: u.email,
-        friends: [],
+        displayName: u.displayName || "User",
+        email: u.email || "",
+        friends: docSnap.exists() ? docSnap.data().friends : [],
       });
-    }
-    setUser({
-      uid: u.uid,
-      displayName: u.displayName || "User",
-      email: u.email || "",
-      friends: docSnap.exists() ? docSnap.data().friends : [],
     });
-  };
-
-  const logout = () => {
-    signOut(auth);
-    setUser(null);
-    setTasks([]);
-  };
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -90,6 +90,17 @@ export default function Home() {
       loadFriendTasks();
     }
   }, [user, viewFriends]);
+
+  const login = async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithRedirect(auth, provider);
+  };
+
+  const logout = () => {
+    signOut(auth);
+    setUser(null);
+    setTasks([]);
+  };
 
   const addTask = async () => {
     if (!title.trim() || !user) return;
