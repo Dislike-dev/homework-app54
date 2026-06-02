@@ -1,5 +1,5 @@
 "use client";
-console.log(firebaseConfig);
+console.log(auth);
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import {
