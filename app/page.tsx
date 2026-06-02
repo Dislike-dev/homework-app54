@@ -1,5 +1,4 @@
 "use client";
-console.log(auth);
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import {
@@ -17,7 +16,7 @@ updateDoc,
 deleteDoc,
 doc,
 } from "firebase/firestore";
-
+console.log("AUTH DOMAIN =", process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN);
 type Task = {
 id: string;
 title: string;
